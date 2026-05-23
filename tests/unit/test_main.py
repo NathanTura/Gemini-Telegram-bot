@@ -3,12 +3,8 @@ from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
-from src.main import (
-    FALLBACK_MESSAGE,
-    PROCESSING_MESSAGE,
-    UNSUPPORTED_MESSAGE,
-    create_app,
-)
+from src.bot_service import FALLBACK_MESSAGE, PROCESSING_MESSAGE, UNSUPPORTED_MESSAGE
+from src.main import create_app
 from src.services.database_service import get_db
 
 
