@@ -2,12 +2,26 @@
 
 ## Description
 
-This project is a chatbot application that uses Google's Generative AI (Gemini) to generate responses. It is built with Python and uses Flask for the web server. The chatbot can be interacted with via a Telegram bot.
+This project is a chatbot application that uses Google's Generative AI (Gemini) to generate responses. It is built with Python, FastAPI, and async SQLAlchemy, and it is designed to run behind a Telegram webhook.
 
 ## Installation
 
 1. Set up the Telegram bot using the BotFather on Telegram
 2. Deploy on vercel with just a click [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/benincasantonio/gemini-ai-telegram-bot)
+
+## Local Development
+
+Run the FastAPI app locally with `uvicorn`:
+
+```bash
+uvicorn src.main:app --reload
+```
+
+Or use the helper entrypoint:
+
+```bash
+python run.py
+```
 
 ## Environment Variables
 
@@ -42,6 +56,13 @@ alembic downgrade -1
 ```
 
 > **Note**: Set `SQLALCHEMY_DATABASE_URI` environment variable before running migrations.
+
+Runtime uses the async driver automatically:
+
+- `postgresql://...` becomes `postgresql+asyncpg://...`
+- `sqlite://...` becomes `sqlite+aiosqlite://...`
+
+Alembic migrations stay on the synchronous SQLAlchemy path, so `psycopg2-binary` remains an intentional dependency for Postgres migration commands.
 
 ## Project Progress
 

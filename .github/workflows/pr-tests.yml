@@ -7,6 +7,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      SQLALCHEMY_DATABASE_URI: sqlite:///ci-test.db
 
     steps:
       - name: Checkout code
@@ -19,7 +21,10 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: python -m pip install -r requirements.txt
+
+      - name: Verify migrations apply cleanly
+        run: python -m alembic upgrade head
 
       - name: Run tests
-        run: pytest tests/ -v
+        run: python -m pytest tests/ -v

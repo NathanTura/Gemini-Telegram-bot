@@ -1,17 +1,20 @@
-from collections.abc import Coroutine
 from io import BytesIO
 from os import getenv
-from telegram import Message
+from telegram import Message, Update
 from telegram.ext import ApplicationBuilder
 from PIL import Image
 
 
 class TelegramService:
-    _telegram_app_bot = None
-
     def __init__(self):
-        self._telegram_app_bot = ApplicationBuilder().token(getenv('TELEGRAM_BOT_TOKEN')).build().bot
-        pass
+        self._telegram_bot = ApplicationBuilder().token(getenv("TELEGRAM_BOT_TOKEN")).build().bot
+
+    @property
+    def bot(self):
+        return self._telegram_bot
+
+    def build_update(self, payload: dict) -> Update:
+        return Update.de_json(payload, self.bot)
 
     def is_secure_webhook_enabled(self) -> bool:
         """Check if secure webhook is enabled.
@@ -19,7 +22,7 @@ class TelegramService:
         Returns:
             True if secure webhook is enabled, False otherwise.
         """
-        return getenv("ENABLE_SECURE_WEBHOOK_TOKEN") in ("True", None)
+        return getenv("ENABLE_SECURE_WEBHOOK_TOKEN", "True").lower() == "true"
     
     def get_secure_webhook_token(self) -> str:
         """Get the secure webhook token from environment variable.
@@ -39,7 +42,7 @@ class TelegramService:
             True if the token is valid, False otherwise.
         """
         secret_token = self.get_secure_webhook_token()
-        return headers_token == secret_token and headers_token is not None
+        return bool(secret_token) and headers_token == secret_token
     
     async def send_start_message(self, chat_id: int):
         """Send the start message to the user.
@@ -66,16 +69,16 @@ class TelegramService:
         await self.send_message(chat_id=chat_id, text="New chat started. How can I assist you?")
 
     
-    async def send_message(self, chat_id: int, text: str) -> Coroutine[Message]:
+    async def send_message(self, chat_id: int, text: str) -> Message:
         """Send a message to the user.
 
         Args:
             chat_id: The chat ID to send the message to.
             text: The message text content.
         """
-        return await self._telegram_app_bot.send_message(chat_id=chat_id, text=text)
+        return await self.bot.send_message(chat_id=chat_id, text=text)
     
-    async def update_message(self, chat_id: int, message_id: int, text: str) -> Coroutine[Message]:
+    async def update_message(self, chat_id: int, message_id: int, text: str) -> Message:
         """Update a message for the user.
 
         Args:
@@ -83,7 +86,7 @@ class TelegramService:
             message_id: The message ID to update.
             text: The new message text content.
         """
-        return await self._telegram_app_bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=text)
+        return await self.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=text)
     
     async def get_image_from_message(self, message: Message) -> Image.Image | None:
         """Retrieve the image file bytes from a Telegram message.
@@ -96,9 +99,15 @@ class TelegramService:
 
         if message.photo:
             file_id = message.photo[-1].file_id
-            file = await self._telegram_app_bot.get_file(file_id)
+            file = await self.bot.get_file(file_id)
             bytes_array = await file.download_as_bytearray()
             bytesIO = BytesIO(bytes_array)
             image = Image.open(bytesIO)
             return image
         return None
+
+    async def close(self) -> None:
+        """Close the underlying Telegram bot client if supported."""
+        shutdown = getattr(self.bot, "shutdown", None)
+        if shutdown is not None:
+            await shutdown()
