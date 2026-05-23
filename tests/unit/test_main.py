@@ -4,6 +4,11 @@ from types import SimpleNamespace
 from fastapi.testclient import TestClient
 
 from src.bot_service import FALLBACK_MESSAGE, PROCESSING_MESSAGE, UNSUPPORTED_MESSAGE
+from src.exceptions.gemini_exceptions import (
+    GEMINI_RATE_LIMIT_MESSAGE,
+    GEMINI_UNAVAILABLE_MESSAGE,
+    GeminiUserFacingError,
+)
 from src.main import create_app
 from src.services.database_service import get_db
 
@@ -88,8 +93,14 @@ class FakeChatService:
 
 
 class FakeGemini:
-    def __init__(self, *, fail: bool = False):
+    def __init__(
+        self,
+        *,
+        fail: bool = False,
+        user_error: GeminiUserFacingError | None = None,
+    ):
         self.fail = fail
+        self.user_error = user_error
         self.closed = False
         self.chat_histories: list[list[dict]] = []
         self.prompts: list[str] = []
@@ -101,6 +112,8 @@ class FakeGemini:
 
     async def send_message(self, prompt: str, chat) -> str:
         self.prompts.append(prompt)
+        if self.user_error is not None:
+            raise self.user_error
         if self.fail:
             raise RuntimeError("boom")
         return f"reply:{prompt}"
@@ -108,6 +121,8 @@ class FakeGemini:
     async def send_image(self, prompt: str, image, chat) -> str:
         self.prompts.append(prompt)
         self.images.append(image)
+        if self.user_error is not None:
+            raise self.user_error
         return f"image:{prompt}"
 
     async def close(self) -> None:
@@ -120,13 +135,18 @@ class FakeGemini:
         await self.close()
 
 
-def build_test_client(*, secure_enabled: bool = False, gemini_fail: bool = False):
+def build_test_client(
+    *,
+    secure_enabled: bool = False,
+    gemini_fail: bool = False,
+    gemini_user_error: GeminiUserFacingError | None = None,
+):
     telegram_service = FakeTelegramService(secure_enabled=secure_enabled)
     chat_service = FakeChatService()
     gemini_instances: list[FakeGemini] = []
 
     def gemini_factory() -> FakeGemini:
-        gemini = FakeGemini(fail=gemini_fail)
+        gemini = FakeGemini(fail=gemini_fail, user_error=gemini_user_error)
         gemini_instances.append(gemini)
         return gemini
 
@@ -266,5 +286,53 @@ def test_processing_failure_updates_message_with_fallback():
     assert response.text == "OK"
     assert telegram_service.sent_messages == [(12, PROCESSING_MESSAGE)]
     assert telegram_service.updated_messages == [(12, 1, FALLBACK_MESSAGE)]
+    assert chat_service.add_calls == []
+    assert len(gemini_instances) == 1
+
+
+def test_gemini_503_updates_message_with_unavailable_message():
+    client, telegram_service, chat_service, gemini_instances = build_test_client(
+        gemini_user_error=GeminiUserFacingError(
+            GEMINI_UNAVAILABLE_MESSAGE,
+            code=503,
+            status="UNAVAILABLE",
+            provider_message="The model is overloaded.",
+        )
+    )
+
+    with client:
+        response = client.post(
+            "/webhook",
+            json={"message": {"chat_id": 13, "text": "hello", "date": "2026-01-15T10:30:00"}},
+        )
+
+    assert response.status_code == 200
+    assert response.text == "OK"
+    assert telegram_service.sent_messages == [(13, PROCESSING_MESSAGE)]
+    assert telegram_service.updated_messages == [(13, 1, GEMINI_UNAVAILABLE_MESSAGE)]
+    assert chat_service.add_calls == []
+    assert len(gemini_instances) == 1
+
+
+def test_gemini_429_updates_message_with_rate_limit_message():
+    client, telegram_service, chat_service, gemini_instances = build_test_client(
+        gemini_user_error=GeminiUserFacingError(
+            GEMINI_RATE_LIMIT_MESSAGE,
+            code=429,
+            status="RESOURCE_EXHAUSTED",
+            provider_message="Rate limit exceeded.",
+        )
+    )
+
+    with client:
+        response = client.post(
+            "/webhook",
+            json={"message": {"chat_id": 14, "text": "hello", "date": "2026-01-15T10:30:00"}},
+        )
+
+    assert response.status_code == 200
+    assert response.text == "OK"
+    assert telegram_service.sent_messages == [(14, PROCESSING_MESSAGE)]
+    assert telegram_service.updated_messages == [(14, 1, GEMINI_RATE_LIMIT_MESSAGE)]
     assert chat_service.add_calls == []
     assert len(gemini_instances) == 1
