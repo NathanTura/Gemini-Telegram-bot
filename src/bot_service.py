@@ -8,6 +8,7 @@ from telegram import Message
 
 from src.chat_service import ChatService
 from src.enums import TelegramBotCommands
+from src.exceptions.gemini_exceptions import GeminiUserFacingError
 from src.gemini import Gemini
 from src.services.telegram_service import TelegramService
 
@@ -90,6 +91,17 @@ class BotService:
                 message_id=processing_message.message_id,
                 text=response_text,
             )
+        except GeminiUserFacingError as exc:
+            LOGGER.warning(
+                "Gemini API error while processing Telegram message for chat_id=%s "
+                "code=%s status=%s provider_message=%s",
+                chat_id,
+                exc.code,
+                exc.status,
+                exc.provider_message,
+                exc_info=True,
+            )
+            await self._send_error_message(chat_id, processing_message, exc.user_message)
         except Exception:
             LOGGER.exception("Failed to process Telegram message for chat_id=%s", chat_id)
             await self._send_fallback_message(chat_id, processing_message)
@@ -101,15 +113,23 @@ class BotService:
         chat_id: int,
         processing_message: Message | None,
     ) -> None:
+        await self._send_error_message(chat_id, processing_message, FALLBACK_MESSAGE)
+
+    async def _send_error_message(
+        self,
+        chat_id: int,
+        processing_message: Message | None,
+        text: str,
+    ) -> None:
         try:
             if processing_message is not None:
                 await self._telegram_service.update_message(
                     chat_id=chat_id,
                     message_id=processing_message.message_id,
-                    text=FALLBACK_MESSAGE,
+                    text=text,
                 )
                 return
 
-            await self._telegram_service.send_message(chat_id=chat_id, text=FALLBACK_MESSAGE)
+            await self._telegram_service.send_message(chat_id=chat_id, text=text)
         except Exception:
-            LOGGER.exception("Failed to send fallback Telegram message for chat_id=%s", chat_id)
+            LOGGER.exception("Failed to send error Telegram message for chat_id=%s", chat_id)
