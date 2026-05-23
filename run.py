@@ -1,4 +1,12 @@
-from .src.flask_app import app
+from os import getenv
 
-if __name__ == '__main__':
-    app.run(debug=True)
+import uvicorn
+
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "src.main:app",
+        host="0.0.0.0",
+        port=int(getenv("PORT", "8000")),
+        reload=True,
+    )

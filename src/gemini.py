@@ -32,23 +32,23 @@ class Gemini:
         )
 
     async def send_message(self, prompt: str, chat: AsyncChat) -> str:
-        function_request = await chat.send_message(prompt)
+        response = await chat.send_message(prompt)
         
-        print("Function Request: " + function_request.__str__())
+        print("Function Request: " + response.__str__())
 
-        function_call = function_request.candidates[0].content.parts[0].function_call
+        candidates = response.candidates or []
+        parts = candidates[0].content.parts if candidates else []
+        function_call = parts[0].function_call if parts else None
 
         if not function_call:
-            chat.get_history().pop()
-            response = await chat.send_message(prompt)
             return response.text
 
         function_response = await self.__plugin_manager.get_function_response(function_call, chat)
 
-        print("Response: " + function_response.__str__())
-
-        if function_response.text is None:
+        if function_response is None or function_response.text is None:
             return "I'm sorry, An error occurred. Please try again."
+
+        print("Response: " + function_response.__str__())
 
         return function_response.text
 
@@ -59,11 +59,12 @@ class Gemini:
         print("Image response: " + response.text)
         return response.text
 
-    @classmethod
-    async def close_plugins(cls) -> None:
-        """Close all plugins and cleanup resources.
+    async def close(self) -> None:
+        """Close plugin-managed resources for this Gemini client instance."""
+        await self.__plugin_manager.close()
 
-        This should be called on application shutdown to properly
-        close HTTP connections and prevent resource leaks.
-        """
-        await cls.__plugin_manager.close()
+    async def __aenter__(self) -> "Gemini":
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        await self.close()

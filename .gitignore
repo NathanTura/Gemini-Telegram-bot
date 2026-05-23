@@ -66,4 +66,6 @@ env
 
 # SQLite databases
 *.sqlite
+*.sqlite3
+*.db
 instance/
