@@ -93,10 +93,7 @@ class TelegramService:
         reply_markup = InlineKeyboardMarkup(keyboard)
         await self.bot.send_message(
             chat_id=chat_id,
-            text="🤖 *Choose your AI model:*
-
-🔄 *Auto* — tries each model in order, skips any that are busy.
-Or pick a specific model to always use that one first.",
+            text="🤖 *Choose your AI model:*\n\n🔄 *Auto* — tries each model in order, skips any that are busy.\nOr pick a specific model to always use that one first.",
             reply_markup=reply_markup,
             parse_mode="Markdown"
         )
