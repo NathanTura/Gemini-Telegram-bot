@@ -1,83 +1,58 @@
-# Gemini Telegram BOT
+# GemBot (@Theallknowerbot)
 
-## Description
+A powerful Telegram chatbot that uses Google's Generative AI (Gemini) to chat, answer questions, and assist you.
 
-This project is a chatbot application that uses Google's Generative AI (Gemini) to generate responses. It is built with Python, FastAPI, and async SQLAlchemy, and it is designed to run behind a Telegram webhook.
+This bot is configured to be **100% free forever** by utilizing Vercel's serverless functions and a free PostgreSQL database. It never sleeps, so it's always ready to answer your messages.
 
-## Installation
+## Features
+- Powered by Gemini 2.5 Flash
+- 100% Free Hosting via Vercel (Scales to zero, never shuts down)
+- Persistent Chat History (via Neon.tech/Supabase Postgres)
+- Auto-Database Migration on Startup
 
-1. Set up the Telegram bot using the BotFather on Telegram
-2. Deploy on vercel with just a click [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/benincasantonio/gemini-ai-telegram-bot)
+## Acknowledgements
+This bot is a customized fork based on the incredible open-source work by [benincasantonio](https://github.com/benincasantonio/gemini-ai-telegram-bot). Huge thanks to the original developer for creating the foundational architecture!
 
-## Local Development
+## Local Development (Testing on your PC)
 
-Run the FastAPI app locally with `uvicorn`:
+If you want to run the bot on your computer before deploying:
 
-```bash
-uvicorn src.main:app --reload
+1. Ensure your `.env` file is present in the root directory and contains your `TELEGRAM_BOT_TOKEN`, `GEMINI_API_KEY`, etc.
+2. Install the required dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Run the bot:
+   ```bash
+   python run.py
+   ```
+
+## Permanent 24/7 Deployment (Vercel)
+
+Follow these steps to deploy the bot so it stays online forever without needing your computer.
+
+### 1. Database Setup
+1. Go to [Neon.tech](https://neon.tech) and create a free account.
+2. Create a new Postgres project.
+3. Copy your **Connection String** (e.g., `postgresql://user:password@hostname/dbname?sslmode=require`).
+
+### 2. Vercel Setup
+1. Push this repository to your GitHub account if you haven't already.
+2. Create a new project on [Vercel](https://vercel.com) and select your repository.
+3. Add the following **Environment Variables** in Vercel before deploying:
+   - `GEMINI_API_KEY`: Your Gemini API key
+   - `TELEGRAM_BOT_TOKEN`: Your Telegram Bot token
+   - `SQLALCHEMY_DATABASE_URI`: Your Neon.tech connection string
+   - `ENABLE_SECURE_WEBHOOK_TOKEN`: `False`
+4. Deploy the project!
+
+### 3. Connect Telegram to Vercel (Webhook)
+Once Vercel gives you a URL (e.g., `https://my-gembot.vercel.app`), tell Telegram to send messages there.
+
+Open your browser and visit:
+```text
+https://api.telegram.org/bot<YOUR_TELEGRAM_BOT_TOKEN>/setWebhook?url=<YOUR_VERCEL_URL>/webhook
 ```
+*Make sure to include `/webhook` at the end of your Vercel URL!*
 
-Or use the helper entrypoint:
-
-```bash
-python run.py
-```
-
-## Environment Variables
-
-The following environment variables are required for the application to run:
-
-| Variable                      | Description                                                                                                                                  | Default Value      |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
-| `GEMINI_API_KEY`              | Your Gemini API key                                                                                                                          | None               |
-| `GEMINI_MODEL_NAME`           | The Gemini model name                                                                                                                        | `gemini-2.5-flash` |
-| `TELEGRAM_BOT_TOKEN`          | Your Telegram Bot token                                                                                                                      | None               |
-| `OWM_API_KEY`                 | Your [Open Weather Map](https://openweathermap.org/api) API Key                                                                              | None               |
-| `ENABLE_SECURE_WEBHOOK_TOKEN` | Enable validation of a secure token passed to the Telegram API webhook to prevent unauthorized access. Allowed values are 'True' or 'False'. | True               |
-| `TELEGRAM_WEBHOOK_SECRET`     | A secure token used to validate incoming requests to the Telegram API webhook.                                                               | None               |
-| `MAX_HISTORY_MESSAGES`        | Maximum number of chat messages to include in context when sending to Gemini. Limits history to prevent context overflow.                    | 50                 |
-
-## Database Migrations
-
-This project uses Alembic for database migrations. Commands:
-
-```bash
-# Check current migration status
-alembic current
-
-# Apply all pending migrations
-alembic upgrade head
-
-# Create a new migration (after changing models)
-alembic revision --autogenerate -m "description of changes"
-
-# Rollback one migration
-alembic downgrade -1
-```
-
-> **Note**: Set `SQLALCHEMY_DATABASE_URI` environment variable before running migrations.
-
-Runtime uses the async driver automatically:
-
-- `postgresql://...` becomes `postgresql+asyncpg://...`
-- `sqlite://...` becomes `sqlite+aiosqlite://...`
-
-Alembic migrations stay on the synchronous SQLAlchemy path, so `psycopg2-binary` remains an intentional dependency for Postgres migration commands.
-
-## Project Progress
-
-This section tracks the progress of the project. The following features are planned or have been implemented:
-
-- [x] Implement Gemini model
-- [x] Implement a basic plugin
-- [x] Implement DateTimePlugin
-- [x] Implement gemini multimodal api, to recognize images and text
-- [x] Chat history mode
-- [x] Implement other plugins (e.g. weather, stock, etc.)
-- [x] Setup Continuous Delivery
-- [x] Implement Secure Token Validation for Telegram Webhook Requests | [Issue #2](https://github.com/benincasantonio/gemini-ai-telegram-bot/issues/2)
-- [ ] Make it work in telegram groups | [Issue #1](https://github.com/benincasantonio/gemini-ai-telegram-bot/issues/1)
-
-## Contributing
-
-Contributions are welcome! Feel free to open issues or submit PRs to help improve the project.
+If the browser returns `"Webhook was set"`, your bot is now online and running 24/7!

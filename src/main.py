@@ -22,6 +22,15 @@ def create_app(
 ) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        # Automatically run database migrations on startup
+        from alembic import command
+        from alembic.config import Config
+        try:
+            alembic_cfg = Config("alembic.ini")
+            command.upgrade(alembic_cfg, "head")
+        except Exception as e:
+            print(f"Migration error (ignoring if tables already exist): {e}")
+            
         telegram_service = telegram_service_factory()
         app.state.telegram_service = telegram_service
         app.state.bot_service = BotService(
