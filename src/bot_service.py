@@ -10,7 +10,7 @@ from src.chat_service import ChatService
 from src.enums import TelegramBotCommands
 from src.exceptions.gemini_exceptions import GeminiUserFacingError
 from src.gemini import Gemini
-from src.services.telegram_service import TelegramService
+from src.services.telegram_service import TelegramService, get_model_for_chat
 
 LOGGER = logging.getLogger(__name__)
 PROCESSING_MESSAGE = "Processing your request..."
@@ -45,6 +45,10 @@ class BotService:
             await self._telegram_service.send_new_chat_message(chat_id=chat_id)
             return "OK"
 
+        if message.text == TelegramBotCommands.MODEL:
+            await self._telegram_service.send_model_picker(chat_id=chat_id)
+            return "OK"
+
         processing_message: Message | None = None
 
         try:
@@ -60,6 +64,9 @@ class BotService:
             )
 
             async with self._gemini_factory() as gemini:
+                # Use the user's manually chosen model as the preferred first option
+                preferred_model = get_model_for_chat(chat_id, gemini._Gemini__fallback_models[0])
+
                 if message.photo:
                     image = await self._telegram_service.get_image_from_message(message)
                     if image is None:
@@ -70,13 +77,13 @@ class BotService:
                     prompt = message.caption or "Describe this image in detail."
                     history = await self._chat_service.get_chat_history(db, chat_session.id)
                     response_text = await gemini.send_image(
-                        prompt, image, gemini.get_chat(model_name=gemini._Gemini__fallback_models[0], history=history)
+                        prompt, image, gemini.get_chat(model_name=preferred_model, history=history)
                     )
                     user_text = prompt
                 else:
                     history = await self._chat_service.get_chat_history(db, chat_session.id)
                     response_text = await gemini.send_message(
-                        message.text, history=history
+                        message.text, history=history, preferred_model=preferred_model
                     )
                     user_text = message.text
 

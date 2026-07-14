@@ -77,6 +77,13 @@ async def webhook(
     _validate_webhook_token(telegram_service, request)
     telegram_update = await _get_telegram_update(request, telegram_service)
 
+    # Handle inline keyboard button taps (model switcher)
+    if telegram_update.callback_query is not None:
+        callback = telegram_update.callback_query
+        if callback.data and callback.data.startswith("model:"):
+            await telegram_service.handle_model_callback(callback)
+        return "OK"
+
     if telegram_update.edited_message is not None:
         return "OK"
 

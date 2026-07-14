@@ -47,11 +47,15 @@ class Gemini:
             config=self.__generation_config,
         )
 
-    async def send_message(self, prompt: str, history: list) -> str:
+    async def send_message(self, prompt: str, history: list, preferred_model: str = None) -> str:
         """Send a message, automatically falling back to other models if rate-limited."""
         last_exc = None
 
-        for model_name in self.__fallback_models:
+        # Build fallback chain starting from the preferred model (user choice or default)
+        start_model = preferred_model or self.__fallback_models[0]
+        fallback_chain = [start_model] + [m for m in self.__fallback_models if m != start_model]
+
+        for model_name in fallback_chain:
             try:
                 chat = self.get_chat(model_name=model_name, history=history)
                 response = await chat.send_message(prompt)
