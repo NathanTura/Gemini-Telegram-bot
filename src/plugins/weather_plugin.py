@@ -228,7 +228,8 @@ class WeatherPlugin:
         This should be called when the plugin is no longer needed to
         properly close HTTP connections and prevent resource leaks.
         """
-        await self.openweathermap_service.close()
+        if hasattr(self, 'openweathermap_service') and self.openweathermap_service is not None:
+            await self.openweathermap_service.close()
 
     async def __aenter__(self) -> "WeatherPlugin":
         """Async context manager entry."""
