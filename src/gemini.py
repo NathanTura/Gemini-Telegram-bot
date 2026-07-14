@@ -10,13 +10,12 @@ from .config import Config
 from .exceptions.gemini_exceptions import GeminiUserFacingError, get_gemini_user_message
 from .plugin_manager import PluginManager
 
-# Fallback model list — ordered by free-tier availability
-# gemini-2.0-flash has limit:0 on free tier, so we try flash-lite and 1.5 first
+# Fallback model list — ordered by speed/availability
 FALLBACK_MODELS = [
     "gemini-2.0-flash-lite",
-    "gemini-1.5-flash",
-    "gemini-1.5-flash-8b",
     "gemini-2.0-flash",
+    "gemini-2.5-flash",
+    "gemini-3.5-flash",
 ]
 
 

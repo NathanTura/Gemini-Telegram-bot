@@ -6,10 +6,11 @@ from PIL import Image
 
 # Available models for manual selection
 AVAILABLE_MODELS = [
-    ("⚡ Gemini 2.0 Flash Lite (Free)", "gemini-2.0-flash-lite"),
-    ("🧠 Gemini 1.5 Flash (Free)", "gemini-1.5-flash"),
-    ("🐣 Gemini 1.5 Flash 8B (Free, Lightest)", "gemini-1.5-flash-8b"),
-    ("🚀 Gemini 2.0 Flash (May need billing)", "gemini-2.0-flash"),
+    ("⚡ Gemini 2.0 Flash Lite", "gemini-2.0-flash-lite"),
+    ("🔥 Gemini 2.0 Flash", "gemini-2.0-flash"),
+    ("✨ Gemini 2.5 Flash", "gemini-2.5-flash"),
+    ("🧠 Gemini 2.5 Pro", "gemini-2.5-pro"),
+    ("🚀 Gemini 3.5 Flash (Newest)", "gemini-3.5-flash"),
 ]
 
 AUTO_MODEL = "auto"  # Sentinel value meaning "use smart fallback"
