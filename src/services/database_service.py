@@ -21,7 +21,9 @@ def get_database_url() -> str:
     """
     url = getenv("SQLALCHEMY_DATABASE_URI", "sqlite:///db.sqlite")
     
-    if url.startswith("postgresql://"):
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif url.startswith("postgresql://"):
         url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
     elif url.startswith("sqlite://"):
         url = url.replace("sqlite://", "sqlite+aiosqlite://", 1)
