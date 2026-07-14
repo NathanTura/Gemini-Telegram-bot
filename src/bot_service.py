@@ -70,13 +70,13 @@ class BotService:
                     prompt = message.caption or "Describe this image in detail."
                     history = await self._chat_service.get_chat_history(db, chat_session.id)
                     response_text = await gemini.send_image(
-                        prompt, image, gemini.get_chat(history=history)
+                        prompt, image, gemini.get_chat(model_name=gemini._Gemini__fallback_models[0], history=history)
                     )
                     user_text = prompt
                 else:
                     history = await self._chat_service.get_chat_history(db, chat_session.id)
                     response_text = await gemini.send_message(
-                        message.text, gemini.get_chat(history=history)
+                        message.text, history=history
                     )
                     user_text = message.text
 
