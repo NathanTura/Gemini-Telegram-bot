@@ -5,10 +5,11 @@ A powerful Telegram chatbot that uses Google's Generative AI (Gemini) to chat, a
 This bot is configured to be **100% free forever** by utilizing Vercel's serverless functions and a free PostgreSQL database. It never sleeps, so it's always ready to answer your messages.
 
 ## Features
-- Powered by Gemini 2.5 Flash
+- Powered by Gemini 1.5 Flash
 - 100% Free Hosting via Vercel (Scales to zero, never shuts down)
 - Persistent Chat History (via Neon.tech/Supabase Postgres)
 - Auto-Database Migration on Startup
+- Weather checking (optional, via OpenWeatherMap)
 
 ## Acknowledgements
 This bot is a customized fork based on the incredible open-source work by [benincasantonio](https://github.com/benincasantonio/gemini-ai-telegram-bot). Huge thanks to the original developer for creating the foundational architecture!
@@ -36,15 +37,23 @@ Follow these steps to deploy the bot so it stays online forever without needing 
 2. Create a new Postgres project.
 3. Copy your **Connection String** (e.g., `postgresql://user:password@hostname/dbname?sslmode=require`).
 
-### 2. Vercel Setup
+### 2. Vercel Setup & The "Production" Catch
 1. Push this repository to your GitHub account if you haven't already.
 2. Create a new project on [Vercel](https://vercel.com) and select your repository.
-3. Add the following **Environment Variables** in Vercel before deploying:
+3. Go to the **Environment Variables** settings page and add these keys:
    - `GEMINI_API_KEY`: Your Gemini API key
    - `TELEGRAM_BOT_TOKEN`: Your Telegram Bot token
    - `SQLALCHEMY_DATABASE_URI`: Your Neon.tech connection string
+   - `GEMINI_MODEL_NAME`: `gemini-1.5-flash`
    - `ENABLE_SECURE_WEBHOOK_TOKEN`: `False`
-4. Deploy the project!
+
+**⚠️ CRITICAL STEP (The "Production" Catch):**
+When you add environment variables in Vercel, by default they might only be applied to the **Preview** and **Development** environments. 
+Because your live Telegram bot is considered a **Production** app, you MUST ensure the Production box is checked!
+- Next to every variable you added, click the three dots `...` and click **Edit**.
+- Look for the checkboxes under the "Environments" section.
+- **Check the box for "Production"** and hit Save.
+- After fixing this, you MUST go to the **Deployments** tab and hit **Redeploy** on the top deployment for the keys to be injected into your live bot.
 
 ### 3. Connect Telegram to Vercel (Webhook)
 Once Vercel gives you a URL (e.g., `https://my-gembot.vercel.app`), tell Telegram to send messages there.
