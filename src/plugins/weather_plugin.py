@@ -27,16 +27,15 @@ class WeatherPlugin:
 
     def __init__(self):
         api_key = getenv("OWM_API_KEY")
-        if not api_key:
-            raise ValueError(
-                "OWM_API_KEY environment variable is not set or is empty. "
-                "Please configure your OpenWeatherMap API key in the .env file."
-            )
+        self._enabled = bool(api_key)
+        
+        if not self._enabled:
+            print("OWM_API_KEY not found. Weather functionality is disabled.")
+            return
 
         try:
             self.openweathermap_service = OpenWeatherMapService(api_key=api_key)
         except ValueError as e:
-            # Re-raise with more context about where the error occurred
             raise ValueError(
                 f"Failed to initialize OpenWeatherMap service: {str(e)}"
             ) from e
@@ -104,7 +103,9 @@ class WeatherPlugin:
             parameters=self.get_forecast_weather_parameters,
         )
 
-    def get_tool(self) -> Tool:
+    def get_tool(self) -> Optional[Tool]:
+        if not self._enabled:
+            return None
         return Tool(
             function_declarations=[
                 self.get_current_weather_function_declaration(),

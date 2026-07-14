@@ -18,10 +18,11 @@ class PluginManager:
         self.__weather_plugin = WeatherPlugin()
 
     def get_tools(self):
-        return [
-            self.__date_time_plugin.get_tool(),
-            self.__weather_plugin.get_tool()
-        ]
+        tools = [self.__date_time_plugin.get_tool()]
+        weather_tool = self.__weather_plugin.get_tool()
+        if weather_tool:
+            tools.append(weather_tool)
+        return tools
 
     def get_function_declarations(self):
         return {
