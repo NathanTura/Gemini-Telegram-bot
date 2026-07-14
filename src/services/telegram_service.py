@@ -12,17 +12,23 @@ AVAILABLE_MODELS = [
     ("🐣 Gemini 1.5 Flash 8B (Lightest)", "gemini-1.5-flash-8b"),
 ]
 
-# In-memory store: {chat_id: model_name}
+AUTO_MODEL = "auto"  # Sentinel value meaning "use smart fallback"
+
+# In-memory store: {chat_id: model_name or AUTO_MODEL}
 _user_model_preferences: dict[int, str] = {}
 
 
-def get_model_for_chat(chat_id: int, default: str) -> str:
-    """Get the manually selected model for a chat, or fall back to default."""
-    return _user_model_preferences.get(chat_id, default)
+def get_model_for_chat(chat_id: int, default: str) -> str | None:
+    """Get the manually selected model for a chat.
+    Returns None if the user is on Auto mode (smart fallback)."""
+    pref = _user_model_preferences.get(chat_id, AUTO_MODEL)
+    if pref == AUTO_MODEL:
+        return None  # None = let Gemini class handle fallback automatically
+    return pref
 
 
 def set_model_for_chat(chat_id: int, model_name: str) -> None:
-    """Save the user's manually selected model."""
+    """Save the user's manually selected model (or AUTO_MODEL for auto)."""
     _user_model_preferences[chat_id] = model_name
 
 
@@ -73,17 +79,24 @@ class TelegramService:
 
     async def send_model_picker(self, chat_id: int):
         """Send a model picker with inline keyboard buttons."""
-        current = get_model_for_chat(chat_id, "gemini-2.0-flash")
+        current = _user_model_preferences.get(chat_id, AUTO_MODEL)
         keyboard = []
+
+        # Auto option at the top
+        auto_label = "✅ 🔄 Auto (Smart Fallback)" if current == AUTO_MODEL else "🔄 Auto (Smart Fallback)"
+        keyboard.append([InlineKeyboardButton(auto_label, callback_data="model:auto")])
+
         for label, model_id in AVAILABLE_MODELS:
-            # Add a checkmark to the currently active model
             display = f"✅ {label}" if model_id == current else label
             keyboard.append([InlineKeyboardButton(display, callback_data=f"model:{model_id}")])
 
         reply_markup = InlineKeyboardMarkup(keyboard)
         await self.bot.send_message(
             chat_id=chat_id,
-            text="🤖 *Choose your AI model:*\n\nThe bot will still auto-fallback if your chosen model is busy.",
+            text="🤖 *Choose your AI model:*
+
+🔄 *Auto* — tries each model in order, skips any that are busy.
+Or pick a specific model to always use that one first.",
             reply_markup=reply_markup,
             parse_mode="Markdown"
         )
@@ -95,17 +108,23 @@ class TelegramService:
 
         set_model_for_chat(chat_id, model_name)
 
-        # Find the label for the selected model
-        label = next((lbl for lbl, mid in AVAILABLE_MODELS if mid == model_name), model_name)
+        if model_name == AUTO_MODEL:
+            status_text = "✅ Switched to *Auto* mode!\n\nThe bot will automatically try the fastest available model and skip any that are busy."
+        else:
+            label = next((lbl for lbl, mid in AVAILABLE_MODELS if mid == model_name), model_name)
+            status_text = f"✅ Switched to *{label}*!\n\nThe bot will still auto-fallback to other models if this one is busy."
 
-        # Update the keyboard to reflect the new selection
+        # Rebuild keyboard with updated checkmarks
+        current = model_name
         keyboard = []
+        auto_label = "✅ 🔄 Auto (Smart Fallback)" if current == AUTO_MODEL else "🔄 Auto (Smart Fallback)"
+        keyboard.append([InlineKeyboardButton(auto_label, callback_data="model:auto")])
         for lbl, mid in AVAILABLE_MODELS:
-            display = f"✅ {lbl}" if mid == model_name else lbl
+            display = f"✅ {lbl}" if mid == current else lbl
             keyboard.append([InlineKeyboardButton(display, callback_data=f"model:{mid}")])
 
         await callback_query.edit_message_text(
-            text=f"✅ Model switched to *{label}*!\n\nThe bot will still auto-fallback if this model is busy.",
+            text=status_text,
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="Markdown"
         )

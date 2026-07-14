@@ -64,7 +64,7 @@ class BotService:
             )
 
             async with self._gemini_factory() as gemini:
-                # Use the user's manually chosen model as the preferred first option
+                # None = Auto mode (smart fallback), or a specific model string if user picked one
                 preferred_model = get_model_for_chat(chat_id, gemini._Gemini__fallback_models[0])
 
                 if message.photo:
