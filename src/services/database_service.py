@@ -27,6 +27,9 @@ def get_database_url() -> str:
         url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
     elif url.startswith("sqlite://"):
         url = url.replace("sqlite://", "sqlite+aiosqlite://", 1)
+        
+    if "sslmode=" in url:
+        url = url.replace("sslmode=", "ssl=")
     
     return url
 
